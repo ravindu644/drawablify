@@ -136,7 +136,8 @@ it cannot do, and nothing else.
 The page has to load on a slow connection. That decides several rules below: no web fonts, no
 icon font, no framework, no third-party request of any kind.
 
-Dark is the default. Light follows `prefers-color-scheme`. There is no toggle.
+Dark is the default. Light follows `prefers-color-scheme` until the visitor uses the theme
+toggle, which then wins and is remembered in `localStorage`.
 
 ## Colors
 
@@ -209,7 +210,9 @@ headline, 600 for titles and labels, 400 for everything else.
 | Field label, caption | `label-md`, 12/16 |
 | XML, SVG markup | `code`, 14/22 |
 
-Prose is capped at 68 characters a line. Headlines are one sentence in one colour.
+The intro sentence is capped at 68 characters a line. The footer notes run the full content
+width: they are two short reference lines, and a cap left a ragged empty column beside them.
+Headlines are one sentence in one colour.
 
 ## Layout
 
@@ -224,8 +227,15 @@ wants 32 or 48.
 | Page side gutter | 24, and 16 under 600px |
 | Content max width | 960px |
 
-One column, top to bottom: title, intro, drop zone, options, paste box, results, footer. Results
-are newest first. Under 600px the two previews stack.
+One column. The page has two states and shows only what the current one needs.
+
+- **Empty:** header, intro, drop zone, the "Paste SVG markup" disclosure, footer.
+- **Loaded:** header, intro, the options row with Reset, a one-line hint, the inputs as result
+  cards (newest first), footer. The drop zone and paste box are hidden. Dropping or pasting
+  still adds files.
+
+Removing the last card returns to the empty state. Under 600px the two previews stack and the
+title and intro step down one size.
 
 ## Elevation and depth
 
@@ -255,8 +265,23 @@ Plain HTML and CSS. No component library.
 | Filled | `primary` | `on-primary` | none |
 | Outlined | transparent | `on-surface-variant` | 1px `outline-variant` |
 
-Labels are sentence case and say the action: "Copy XML", "Download", "Clear results". No arrow
-glyph, no icon.
+Labels are sentence case and say the action: "Copy XML", "Download", "Reset". No arrow glyph
+and no icon inside a labelled button.
+
+A disabled button is at 38% opacity, the M3 disabled state. Reset is disabled while the options
+are already at their defaults, so it never looks like it does something it does not.
+
+### Icon buttons
+
+The M3 standard icon button: 48px square, no border, a 24px icon in `on-surface-variant`, the
+hover tier step and the press morph like every other button. Used three times: the GitHub link
+and theme toggle in the header, and the remove X on each result card. Each has an `aria-label`
+that says what happens ("Switch to light theme", "Remove icon.xml") and a matching `title`.
+
+### Header
+
+The page title on the left, the GitHub link and the theme toggle on the right. The toggle shows
+a sun in dark mode and a moon in light mode, the theme it switches to.
 
 ### Drop zone
 
@@ -266,8 +291,10 @@ is the only dashed line on the page and it means "drop here".
 
 ### Result card
 
-File name and status on one line, then the two previews, then warnings, then the XML pane, then
-the actions. A failed card hides everything but the name and the error in `error`.
+File name, status and the remove X on one line, then the two previews, then warnings, then the
+XML pane, then the actions. A failed card hides everything but that first line, with the error
+in `error`. Removing a card moves focus to the next card's X, or to the file picker when none
+are left, so a keyboard user never lands on nothing.
 
 ### Previews
 
@@ -276,8 +303,12 @@ shows what Android will draw. Both sit on a checkerboard so transparency is visi
 
 ### Options
 
-Changing decimal places re-renders every result. Changing the tracing preset re-traces every
-raster result. There is no "apply" button.
+Shown only in the loaded state. Changing decimal places re-renders every result. Changing the
+tracing preset re-traces every raster result. There is no "apply" button. Reset puts both back
+to their defaults (2, `default`) and re-renders.
+
+While a file is dragged over the page, the drop zone border turns `primary` in the empty state,
+and a dashed `primary` outline appears around the results in the loaded state.
 
 ## Motion
 
@@ -316,7 +347,10 @@ Looked at and deliberately left alone.
   56. 48 keeps the touch-target minimum.
 - **The checkerboard is a gradient.** It is the standard way to show transparency, and a tiled
   image would be one more request.
-- **No theme toggle.** The page follows the system scheme. A toggle needs a script and storage
-  for a preference the system already holds.
+- **The light tokens are written twice** in `index.html`, once under the system media query and
+  once under `[data-theme="light"]`. `light-dark()` would say it once, but it breaks every colour
+  on browsers older than 2024, and this page is meant for old phones too.
+- **`theme.js` is a separate blocking script in `<head>`.** The CSP forbids inline scripts, and
+  applying a saved theme any later flashes the other theme on load.
 - **Warnings are `tertiary`.** M3 has no warning role, and `error` is kept for a conversion that
   failed outright.

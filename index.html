@@ -8,8 +8,9 @@
 <title>SVG to VectorDrawable</title>
 <meta name="description" content="Convert SVG, PNG, JPEG and GIF images to Android VectorDrawable XML in your browser.">
 <link rel="icon" href="icon.svg">
+<script src="theme.js"></script>
 <style>
-/* Tokens: see DESIGN.md. Dark is the default, light follows the system. */
+/* Tokens: see DESIGN.md. Dark is the default, light follows the system unless the toggle overrides it. */
 :root {
   color-scheme: dark;
   --primary: #a2cde2; --on-primary: #174557;
@@ -23,8 +24,10 @@
   --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+/* The light set appears twice on purpose: light-dark() would say it once, but breaks every colour on
+   browsers older than 2024, and this page is meant for old phones too. */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]) {
     color-scheme: light;
     --primary: #28667e; --on-primary: #f3faff;
     --secondary-container: #d0e6f2; --on-secondary-container: #40555f;
@@ -34,21 +37,36 @@
     --on-surface: #2b3438; --on-surface-variant: #586065; --outline-variant: #abb3b9;
   }
 }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --primary: #28667e; --on-primary: #f3faff;
+  --secondary-container: #d0e6f2; --on-secondary-container: #40555f;
+  --tertiary: #4f5e84; --error: #a83836;
+  --surface: #f7fafc; --surface-lowest: #ffffff; --surface-low: #eff4f8;
+  --surface-container: #e9eff3; --surface-high: #e2e9ee; --surface-highest: #dbe4e9;
+  --on-surface: #2b3438; --on-surface-variant: #586065; --outline-variant: #abb3b9;
+}
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--surface); color: var(--on-surface); font: 400 16px/24px var(--sans); letter-spacing: .5px; }
-main { max-width: 960px; margin: 0 auto; padding: 48px 24px 64px; }
-h1 { font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: 0; margin: 0 0 12px; }
+main { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+h1 { font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: 0; margin: 4px 0 12px; }
+.top nav { display: flex; gap: 4px; flex: none; }
 .intro { font-size: 22px; line-height: 28px; color: var(--on-surface-variant); margin: 0 0 32px; max-width: 68ch; letter-spacing: 0; }
 .small { color: var(--on-surface-variant); font-size: 14px; line-height: 20px; letter-spacing: .25px; }
 
 #drop { display: block; border: 1px dashed var(--outline-variant); border-radius: 28px; padding: 48px 24px; text-align: center;
   cursor: pointer; background: var(--surface-container); transition: background var(--motion-effects), border-color var(--motion-effects); }
 #drop:hover { background: var(--surface-highest); }
-#drop.over, #drop:focus-within { border-color: var(--primary); }
+#drop:focus-within, .over #drop { border-color: var(--primary); }
+.over #results { outline: 1px dashed var(--primary); outline-offset: 8px; border-radius: 28px; }
 #drop strong { color: var(--primary); font-weight: 600; }
 #drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 
-.row { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; margin: 24px 0; }
+#options { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; margin: 0 0 8px; }
+.hint { margin: 0 0 24px; }
 label.field { display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--on-surface-variant); }
 select, input[type=number], textarea, button { font: inherit; color: inherit; }
 select, input[type=number] { height: 48px; padding: 0 16px; border-radius: 16px; border: 1px solid var(--outline-variant); background: var(--surface-container); }
@@ -56,25 +74,29 @@ textarea { width: 100%; padding: 20px; border-radius: 16px; border: 1px solid va
   font: 400 14px/22px var(--mono); letter-spacing: 0; resize: vertical; }
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-button { height: 48px; padding: 0 24px; border-radius: 24px; border: 1px solid var(--outline-variant); background: transparent;
+button, .icon { height: 48px; padding: 0 24px; border-radius: 24px; border: 1px solid var(--outline-variant); background: transparent;
   color: var(--on-surface-variant); font-size: 14px; line-height: 20px; font-weight: 600; letter-spacing: .1px; cursor: pointer;
   transition: border-radius var(--motion-press), background var(--motion-effects); }
-button:hover { background: var(--surface-highest); }
-button:active { border-radius: 12px; transition-duration: 0ms, 182ms; }
+button:hover, .icon:hover { background: var(--surface-highest); }
+button:active, .icon:active { border-radius: 12px; transition-duration: 0ms, 182ms; }
+button:disabled { opacity: .38; cursor: default; background: transparent; border-radius: 24px; }
 button.filled { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+/* Standard M3 icon button: no border, the icon is the whole control. */
+.icon { width: 48px; padding: 0; border-color: transparent; display: inline-grid; place-items: center; flex: none; }
+.icon svg { width: 24px; height: 24px; }
 
-details { margin: 0 0 24px; }
+details { margin: 24px 0 0; }
 summary { cursor: pointer; color: var(--on-surface-variant); padding: 12px 0; }
 details textarea { margin: 8px 0 12px; }
 
 #results { display: grid; gap: 16px; }
 .card { background: var(--surface-container); border: 1px solid var(--outline-variant); border-radius: 28px; padding: 24px; }
-.card header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
-.card h3 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: .15px; word-break: break-all; }
-.status { color: var(--on-surface-variant); font-size: 14px; }
-.failed .status { color: var(--error); }
+.card header { display: flex; align-items: center; gap: 8px; margin: -12px -12px 0 0; }
+.card h3 { margin: 0; flex: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: .15px; overflow-wrap: anywhere; }
+.status { color: var(--on-surface-variant); font-size: 14px; white-space: nowrap; }
+.failed .status { color: var(--error); white-space: normal; }
 .failed .body { display: none; }
-.previews { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 12px; }
+.previews { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
 figure { margin: 0; }
 figcaption { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--on-surface-variant); margin-top: 8px; }
 /* The checkerboard is the one gradient: it shows where the drawing is transparent. */
@@ -84,53 +106,69 @@ figcaption { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--
 .warnings:empty { display: none; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
-footer { margin-top: 48px; color: var(--on-surface-variant); font-size: 14px; line-height: 20px; max-width: 68ch; }
+footer { margin-top: 48px; color: var(--on-surface-variant); font-size: 14px; line-height: 20px; }
 footer p { margin: 0 0 12px; }
 code { font-family: var(--mono); }
 
 @media (max-width: 599px) {
-  main { padding: 32px 16px 48px; }
+  main { padding: 24px 16px 48px; }
+  h1 { font-size: 28px; line-height: 36px; }
+  .intro { font-size: 16px; line-height: 24px; }
   .previews { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
-  button:active { border-radius: 24px; }
+  button:active, .icon:active { border-radius: 24px; }
 }
 </style>
 </head>
 <body>
 <main>
-  <h1>SVG to Android VectorDrawable</h1>
+  <div class="top">
+    <h1>SVG to Android VectorDrawable</h1>
+    <nav>
+      <a class="icon" href="https://github.com/ravindu644/drawablify" aria-label="Source code on GitHub" title="Source code on GitHub">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+      <button id="theme" class="icon" type="button" aria-label="Switch theme" title="Switch theme">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </nav>
+  </div>
   <p class="intro">Converts SVG, PNG, JPEG and GIF files to VectorDrawable XML. Files are converted in your browser and never uploaded.</p>
 
-  <label id="drop">
-    <input id="file" type="file" multiple accept=".svg,image/svg+xml,image/png,image/jpeg,image/gif,image/webp,image/bmp">
-    <strong>Choose files</strong> or drop them on the page
-    <div class="small">Pasting an image or SVG markup with Ctrl+V also works.</div>
-  </label>
-
-  <div class="row">
-    <label class="field">Decimal places
-      <input id="precision" type="number" min="0" max="6" value="2">
+  <section id="start">
+    <label id="drop">
+      <input id="file" type="file" multiple accept=".svg,image/svg+xml,image/png,image/jpeg,image/gif,image/webp,image/bmp">
+      <strong>Choose files</strong> or drop them on the page
+      <div class="small">Pasting an image or SVG markup with Ctrl+V also works.</div>
     </label>
-    <label class="field">Tracing preset for PNG, JPEG and GIF
-      <select id="preset">
-        <option>default</option><option>posterized1</option><option>posterized2</option><option>posterized3</option>
-        <option>curvy</option><option>sharp</option><option>detailed</option><option>smoothed</option>
-        <option>grayscale</option><option>fixedpalette</option><option>randomsampling1</option><option>randomsampling2</option>
-        <option>artistic1</option><option>artistic2</option><option>artistic3</option><option>artistic4</option>
-      </select>
-    </label>
-    <button id="clear" type="button">Clear results</button>
-  </div>
+    <details>
+      <summary>Paste SVG markup</summary>
+      <textarea id="paste" rows="6" placeholder="<svg ...>...</svg>" aria-label="SVG markup"></textarea>
+      <button id="paste-go" class="filled" type="button">Convert</button>
+    </details>
+  </section>
 
-  <details>
-    <summary>Paste SVG markup</summary>
-    <textarea id="paste" rows="6" placeholder="<svg ...>...</svg>" aria-label="SVG markup"></textarea>
-    <button id="paste-go" class="filled" type="button">Convert</button>
-  </details>
-
-  <section id="results" aria-live="polite"></section>
+  <section id="work" hidden>
+    <div id="options">
+      <label class="field">Decimal places
+        <input id="precision" type="number" min="0" max="6" value="2">
+      </label>
+      <label class="field">Tracing preset for PNG, JPEG and GIF
+        <select id="preset">
+          <option>default</option><option>posterized1</option><option>posterized2</option><option>posterized3</option>
+          <option>curvy</option><option>sharp</option><option>detailed</option><option>smoothed</option>
+          <option>grayscale</option><option>fixedpalette</option><option>randomsampling1</option><option>randomsampling2</option>
+          <option>artistic1</option><option>artistic2</option><option>artistic3</option><option>artistic4</option>
+        </select>
+      </label>
+      <button id="reset" type="button" disabled>Reset</button>
+    </div>
+    <p class="small hint">Changes apply right away. Drop or paste more files to add them.</p>
+    <div id="results" aria-live="polite"></div>
+  </section>
 
   <footer>
     <p>Supported: paths, basic shapes, groups, transforms, CSS styles, <code>&lt;use&gt;</code>, clip paths, and linear and radial gradients. Gradients need API 24 or newer.</p>
@@ -140,7 +178,12 @@ code { font-family: var(--mono); }
 
 <template id="card">
   <article class="card">
-    <header><h3></h3><span class="status"></span></header>
+    <header>
+      <h3></h3><span class="status"></span>
+      <button class="icon remove" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
     <div class="body">
       <div class="previews">
         <figure><img class="orig" alt="Original"><figcaption>Original</figcaption></figure>

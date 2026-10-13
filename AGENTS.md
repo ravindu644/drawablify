@@ -11,7 +11,9 @@ entirely in the browser. No build step, no framework, no package manager.
 - `convert.js` is the converter. It renders the SVG in a sandboxed iframe so the browser resolves
   CSS, units, `<use>` and transforms, then bakes the geometry and writes the XML.
   `vectorToSvg()` turns that XML back into SVG for the preview.
-- `app.js` is the UI: file input, drop, paste, options, result cards.
+- `app.js` is the UI: file input, drop, paste, options, result cards, the empty and loaded
+  states, and the theme toggle.
+- `theme.js` applies a saved theme from `<head>` before the first paint.
 - `trace-worker.js` runs `vendor/imagetracer.js` (imagetracerjs 1.2.6, public domain) to turn
   raster images into SVG before conversion.
 - `sw.js` caches the page for offline use.

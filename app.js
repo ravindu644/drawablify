@@ -25,6 +25,7 @@ const xmlName = name => {
   return (/^[a-z]/.test(base) ? base : 'ic_' + base) + '.xml'; // Android resource names: [a-z][a-z0-9_]*
 };
 
+const DEFAULTS = { precision: '2', preset: 'default' };
 const precision = () => Math.min(6, Math.max(0, Math.round(+$('#precision').value || 0)));
 
 // Every result keeps its input, so changing an option re-renders it in place.
@@ -39,6 +40,11 @@ function add(name, input) {
   $('#results').prepend(card);
   const item = { name, input, raster, card };
   items.push(item);
+  syncView();
+  const remove = card.querySelector('.remove');
+  remove.setAttribute('aria-label', 'Remove ' + xmlName(name));
+  remove.title = 'Remove';
+  remove.onclick = () => dismiss(item);
   card.querySelector('.copy').onclick = e => navigator.clipboard.writeText(item.xml).then(() => flash(e.target, 'Copied'));
   card.querySelector('.save').onclick = () => {
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([item.xml], { type: 'text/xml' })), download: xmlName(name) });
@@ -57,7 +63,7 @@ async function source(item) {
 
 async function render(item) {
   const { card } = item;
-  if (!card.isConnected) return; // cleared while queued
+  if (!card.isConnected) return; // removed while queued
   const status = card.querySelector('.status');
   status.textContent = 'Converting';
   try {
@@ -77,6 +83,29 @@ async function render(item) {
   }
 }
 
+function dismiss(item) {
+  const i = items.indexOf(item);
+  items.splice(i, 1);
+  const orig = item.card.querySelector('.orig').src;
+  if (orig) URL.revokeObjectURL(orig);
+  item.card.remove();
+  syncView();
+  // Keep keyboard focus on the page: the next card's X, or the file picker once nothing is left.
+  const next = $('#results .remove');
+  (next || $('#file')).focus();
+}
+
+// Empty: show the ways in. Loaded: hide them and show the options and the inputs.
+function syncView() {
+  const loaded = items.length > 0;
+  $('#start').hidden = loaded;
+  $('#work').hidden = !loaded;
+}
+
+function syncReset() {
+  $('#reset').disabled = $('#precision').value === DEFAULTS.precision && $('#preset').value === DEFAULTS.preset;
+}
+
 function flash(btn, text) {
   const old = btn.textContent;
   btn.textContent = text;
@@ -86,15 +115,27 @@ function flash(btn, text) {
 const addFiles = files => files.forEach(f => add(f.name, f));
 
 $('#file').onchange = e => { addFiles([...e.target.files]); e.target.value = ''; };
-$('#paste-go').onclick = () => { const s = $('#paste').value.trim(); if (s) add('pasted.svg', s); };
-$('#clear').onclick = () => { items = []; $('#results').replaceChildren(); };
-$('#precision').oninput = () => items.forEach(enqueue);
-$('#preset').onchange = () => items.filter(i => i.raster).forEach(enqueue);
+$('#paste-go').onclick = () => {
+  const s = $('#paste').value.trim();
+  if (!s) return $('#paste').focus();
+  $('#paste').value = '';
+  $('details').open = false;
+  add('pasted.svg', s);
+};
+$('#precision').oninput = () => { syncReset(); items.forEach(enqueue); };
+$('#preset').onchange = () => { syncReset(); items.filter(i => i.raster).forEach(enqueue); };
+$('#reset').onclick = () => {
+  $('#precision').value = DEFAULTS.precision;
+  $('#preset').value = DEFAULTS.preset;
+  syncReset();
+  items.forEach(enqueue); // traced SVGs are cached per preset, so this re-traces only if the preset moved
+};
 
-const drop = $('#drop');
-addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
-addEventListener('dragleave', e => { if (!e.relatedTarget) drop.classList.remove('over'); });
-addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); addFiles([...e.dataTransfer.files]); });
+// The class goes on <body> so a drop target shows in both states, not only on the drop zone.
+const dragging = on => document.body.classList.toggle('over', on);
+addEventListener('dragover', e => { e.preventDefault(); dragging(true); });
+addEventListener('dragleave', e => { if (!e.relatedTarget) dragging(false); });
+addEventListener('drop', e => { e.preventDefault(); dragging(false); addFiles([...e.dataTransfer.files]); });
 addEventListener('paste', e => {
   if (e.target.closest('textarea, input')) return;
   const files = [...e.clipboardData.files];
@@ -102,5 +143,23 @@ addEventListener('paste', e => {
   const s = e.clipboardData.getData('text');
   if (/<svg[\s>]/i.test(s)) add('pasted.svg', s);
 });
+
+// The theme follows the system until the toggle is used, then the choice is remembered.
+const root = document.documentElement;
+const light = () => (root.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')) === 'light';
+function syncTheme() {
+  const label = light() ? 'Switch to dark theme' : 'Switch to light theme';
+  $('#theme').setAttribute('aria-label', label);
+  $('#theme').title = label;
+  $('#theme .sun').style.display = light() ? 'none' : '';
+  $('#theme .moon').style.display = light() ? '' : 'none';
+}
+$('#theme').onclick = () => {
+  root.dataset.theme = light() ? 'dark' : 'light';
+  try { localStorage.setItem('theme', root.dataset.theme); } catch {}
+  syncTheme();
+};
+matchMedia('(prefers-color-scheme: light)').addEventListener('change', syncTheme);
+syncTheme();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');

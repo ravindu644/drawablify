@@ -223,7 +223,8 @@ $('#reset').onclick = () => {
 
 // The class goes on <body> so a drop target shows in both states, not only on the drop zone.
 const dragging = on => document.body.classList.toggle('over', on);
-addEventListener('dragover', e => { e.preventDefault(); dragging(true); });
+// Only files from outside count. Dragged text or a page image would light up the target and drop nothing.
+addEventListener('dragover', e => { if (!e.dataTransfer.types.includes('Files')) return; e.preventDefault(); dragging(true); });
 addEventListener('dragleave', e => { if (!e.relatedTarget) dragging(false); });
 addEventListener('drop', e => { e.preventDefault(); dragging(false); addFiles([...e.dataTransfer.files]); });
 addEventListener('paste', e => {

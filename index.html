@@ -281,7 +281,7 @@ button, .icon, summary, label { -webkit-tap-highlight-color: transparent; }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
     </div>
-    <img id="viewer-img" alt="">
+    <img id="viewer-img" alt="" draggable="false">
     <p id="viewer-name" class="small"></p>
     <div id="viewer-options"></div>
   </div>
@@ -297,8 +297,8 @@ button, .icon, summary, label { -webkit-tap-highlight-color: transparent; }
     </header>
     <div class="body">
       <div class="previews">
-        <figure><button class="zoom" type="button" data-show="orig" aria-label="View original larger"><img class="orig" alt=""></button><figcaption>Original</figcaption></figure>
-        <figure><button class="zoom" type="button" data-show="out" aria-label="View VectorDrawable larger"><img class="out" alt=""></button><figcaption>VectorDrawable</figcaption></figure>
+        <figure><button class="zoom" type="button" data-show="orig" aria-label="View original larger"><img class="orig" alt="" draggable="false"></button><figcaption>Original</figcaption></figure>
+        <figure><button class="zoom" type="button" data-show="out" aria-label="View VectorDrawable larger"><img class="out" alt="" draggable="false"></button><figcaption>VectorDrawable</figcaption></figure>
       </div>
       <ul class="warnings"></ul>
       <textarea rows="8" readonly wrap="off" aria-label="VectorDrawable XML"></textarea>

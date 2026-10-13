@@ -211,7 +211,8 @@ headline, 600 for titles and labels, 400 for everything else.
 | XML, SVG markup | `code`, 14/22 |
 
 The intro sentence is capped at 68 characters a line. The footer notes run the full content
-width: they are two short reference lines, and a cap left a ragged empty column beside them.
+width, side by side from 900px: they are two short reference lines, and a cap left a ragged empty
+column beside them.
 Headlines are one sentence in one colour.
 
 ## Layout
@@ -225,16 +226,24 @@ wants 32 or 48.
 | Card inner padding | 24 |
 | Between result cards | 16 |
 | Page side gutter | 24, and 16 under 600px |
-| Content max width | 960px |
+| Content max width | 1200px |
+
+A sticky top bar spans the window: the icon and "Drawablify" on the left, the GitHub link and
+the theme toggle on the right. Its content lines up with the column below, and a 1px
+`outline-variant` line separates it from the page.
 
 One column. The page has two states and shows only what the current one needs.
 
-- **Empty:** header, intro, drop zone, the "Paste SVG markup" disclosure, footer.
-- **Loaded:** header, intro, the options row with Reset, a one-line hint, the inputs as result
+- **Empty:** title, intro, drop zone, the "Paste SVG markup" disclosure, footer.
+- **Loaded:** title, intro, the options row with Reset, a one-line hint, the inputs as result
   cards (newest first), footer. The drop zone and paste box are hidden. Dropping or pasting
   still adds files.
 
 Removing the last card returns to the empty state.
+
+From 900px wide, a result card turns sideways: the two previews (224px tall) on the left, the
+XML on the right filling the card's height, Copy and Download under the XML. The two footer notes
+sit side by side. A tall card down the middle of a wide screen left most of it empty.
 
 ### Mobile
 

@@ -56,18 +56,23 @@ body, .card, textarea, select, input, dialog {
 }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--surface); color: var(--on-surface); font: 400 16px/24px var(--sans); letter-spacing: .5px; }
-main { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+main { max-width: 1200px; margin: 0 auto; padding: 48px 24px 64px; }
 
-.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-h1 { font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: 0; margin: 4px 0 12px; }
-.top nav { display: flex; gap: 4px; flex: none; }
+/* The bar spans the window and stays put; its content lines up with main below it. */
+.appbar { position: sticky; top: 0; z-index: 1; background: var(--surface); border-bottom: 1px solid var(--outline-variant); }
+.appbar nav { max-width: 1200px; margin: 0 auto; padding: 8px 12px 8px 24px; display: flex; align-items: center; gap: 4px; }
+.brand { display: flex; align-items: center; gap: 12px; margin-right: auto; color: inherit; text-decoration: none;
+  font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: .15px; }
+.brand img { width: 32px; height: 32px; }
+h1 { font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: 0; margin: 0 0 12px; }
 .intro { font-size: 22px; line-height: 28px; color: var(--on-surface-variant); margin: 0 0 32px; max-width: 68ch; letter-spacing: 0; }
 .small { color: var(--on-surface-variant); font-size: 14px; line-height: 20px; letter-spacing: .25px; }
 
-#drop { display: block; border: 1px dashed var(--outline-variant); border-radius: 28px; padding: 48px 24px; text-align: center;
+#drop { display: grid; justify-items: center; gap: 4px; border: 1px dashed var(--outline-variant); border-radius: 28px; padding: 64px 24px; text-align: center;
   cursor: pointer; background: var(--surface-container); transition: background var(--motion-effects), border-color var(--motion-effects); }
 #drop:focus-within, .over #drop { border-color: var(--primary); }
 .over #results { outline: 1px dashed var(--primary); outline-offset: 8px; border-radius: 28px; }
+#drop svg { width: 48px; height: 48px; color: var(--primary); margin-bottom: 12px; }
 #drop strong { color: var(--primary); font-weight: 600; }
 #drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 
@@ -156,6 +161,18 @@ dialog.closing::backdrop { animation: fade var(--motion-effects) reverse forward
 
 footer { margin-top: 48px; color: var(--on-surface-variant); font-size: 14px; line-height: 20px; }
 footer p { margin: 0 0 12px; }
+/* Wide screens: the card turns sideways, previews on the left and the XML filling the right, so a
+   result fits on one screen instead of being a tall strip down the middle. */
+@media (min-width: 900px) {
+  .body { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto 1fr auto; column-gap: 24px;
+    grid-template-areas: "prev xml" "warn xml" ". act"; margin-top: 12px; }
+  .previews { grid-area: prev; margin: 0; }
+  .previews img { height: 224px; }
+  .warnings { grid-area: warn; margin: 12px 0 0; }
+  .body textarea { grid-area: xml; min-height: 0; }
+  .actions { grid-area: act; }
+  footer { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+}
 code { font-family: var(--mono); }
 
 /* Hover only where there is a real pointer: on touch screens a tapped element would stay "hovered". */
@@ -188,6 +205,7 @@ button, .icon, summary, label { -webkit-tap-highlight-color: transparent; }
   #viewer-img { height: 45dvh; }
 
   main { padding: 24px 16px 48px; }
+  .appbar nav { padding: 4px 4px 4px 16px; }
   h1 { font-size: 28px; line-height: 36px; }
   .intro { font-size: 16px; line-height: 24px; }
 }
@@ -198,25 +216,27 @@ button, .icon, summary, label { -webkit-tap-highlight-color: transparent; }
 </style>
 </head>
 <body>
+<header class="appbar">
+  <nav>
+    <a class="brand" href="./"><img src="icon.svg" alt="">Drawablify</a>
+    <a class="icon" href="https://github.com/ravindu644/drawablify" aria-label="Source code on GitHub" title="Source code on GitHub">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    </a>
+    <button id="theme" class="icon" type="button" aria-label="Switch theme" title="Switch theme">
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </nav>
+</header>
 <main>
-  <div class="top">
-    <h1>SVG to Android VectorDrawable</h1>
-    <nav>
-      <a class="icon" href="https://github.com/ravindu644/drawablify" aria-label="Source code on GitHub" title="Source code on GitHub">
-        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-      </a>
-      <button id="theme" class="icon" type="button" aria-label="Switch theme" title="Switch theme">
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-    </nav>
-  </div>
+  <h1>SVG to Android VectorDrawable</h1>
   <p class="intro">Converts SVG, PNG, JPEG and GIF files to VectorDrawable XML. Files are converted in your browser and never uploaded.</p>
 
   <section id="start">
     <label id="drop">
       <input id="file" type="file" multiple accept=".svg,image/svg+xml,image/png,image/jpeg,image/gif,image/webp,image/bmp">
-      <strong>Choose files</strong><span class="pointer-only"> or drop them on the page</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+      <span><strong>Choose files</strong><span class="pointer-only"> or drop them on the page</span></span>
       <div class="small pointer-only">Pasting an image or SVG markup with Ctrl+V also works.</div>
     </label>
     <details>

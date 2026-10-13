@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>convert.js self-check</title>
+<!-- Open over http (python3 -m http.server) and read the result below. -->
+<pre id="out">running</pre>
+<script src="convert.js"></script>
+<script>
+const CASES = {
+  'viewBox offset': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 10 24 24" width="48" height="48"><path d="M12 12h20v20H12z" fill="#e53935"/></svg>`,
+  'nested transforms': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g transform="translate(50 50) rotate(30) scale(1.5 .7)"><rect x="-20" y="-20" width="40" height="40" rx="8" fill="#1e88e5" stroke="#000" stroke-width="3"/></g></svg>`,
+  'css + shapes': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><style>.a{fill:#43a047;opacity:.5}circle{stroke:orange;stroke-width:4px;fill:none}</style><ellipse class="a" cx="32" cy="32" rx="28" ry="14"/><circle cx="32" cy="32" r="20"/><polygon points="32,4 40,20 24,20" fill="purple"/><line x1="0" y1="60" x2="64" y2="60" stroke="black" stroke-width="2"/></svg>`,
+  'packed arc flags': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2 12a10 10 0 1020 0a10 10 0 10-20 0z" fill="teal"/></svg>`,
+  'arc under transform': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path transform="skewX(15) translate(-2 0)" d="M4 12a8 5 30 1 1 16 0A8 5 30 0 1 4 12z" fill-rule="evenodd" fill="navy"/></svg>`,
+  'gradients': `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 50"><defs><linearGradient id="s"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient><linearGradient id="l" xlink:href="#s" x1="0" x2="1"/><radialGradient id="r" cx="75" cy="25" r="20" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#0a0"/></radialGradient></defs><rect width="50" height="50" fill="url(#l)"/><rect x="50" width="50" height="50" fill="url(#r)"/></svg>`,
+  'use + clip': `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 40 40"><defs><clipPath id="c"><circle cx="20" cy="20" r="15"/></clipPath><rect id="b" width="10" height="10" fill="#f80"/></defs><g clip-path="url(#c)"><rect width="40" height="40" fill="#333"/><use xlink:href="#b" x="15" y="15"/></g></svg>`,
+};
+
+function render(svg, size = 128) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = Object.assign(document.createElement('canvas'), { width: size, height: size });
+      const x = c.getContext('2d');
+      x.drawImage(img, 0, 0, size, size);
+      res(x.getImageData(0, 0, size, size).data);
+    };
+    img.onerror = () => rej(Error('render failed'));
+    img.src = 'data:image/svg+xml,' + encodeURIComponent(svg);
+  });
+}
+
+(async () => {
+  const lines = [];
+  let ok = true;
+  const check = (name, cond, extra = '') => { ok &&= !!cond; lines.push(`${cond ? 'PASS' : 'FAIL'} ${name} ${extra}`); };
+  for (const [name, src] of Object.entries(CASES)) {
+    try {
+      const { xml, warnings } = svgToVector(src, { precision: 3 });
+      const sq = s => s.replace(/<svg\b[^>]*>/, t => t.replace(/\s(width|height|preserveAspectRatio)="[^"]*"/g, '').replace('<svg', '<svg width="128" height="128" preserveAspectRatio="none"'));
+      const a = await render(sq(src)), b = await render(sq(vectorToSvg(xml)));
+      let diff = 0;
+      for (let i = 0; i < a.length; i++) diff += Math.abs(a[i] - b[i]);
+      const mean = diff / a.length;
+      check(name, mean < 1.5, `(mean px diff ${mean.toFixed(3)}${warnings.length ? '; warnings: ' + warnings.join(' | ') : ''})`);
+    } catch (e) { check(name, false, e.stack); }
+  }
+  // Untrusted SVG must not run script inside the sandbox.
+  window.pwned = false;
+  svgToVector(`<svg xmlns="http://www.w3.org/2000/svg" onload="parent.pwned=true"><script>parent.pwned=true<\/script><rect width="1" height="1"/></svg>`);
+  await new Promise(r => setTimeout(r, 200));
+  check('sandbox blocks scripts', !window.pwned);
+  check('viewport from viewBox', /viewportWidth="24"[\s\S]*M2 2L22 2L22 22L2 22Z/.test(svgToVector(CASES['viewBox offset']).xml));
+  check('dp size from width/height', /android:width="48dp"/.test(svgToVector(CASES['viewBox offset']).xml));
+  check('gradient uses aapt', /xmlns:aapt[\s\S]*<gradient[\s\S]*android:type="radial"/.test(svgToVector(CASES.gradients).xml));
+  let threw = false; try { svgToVector('<svg><nope'); } catch { threw = true; }
+  check('rejects malformed XML', threw);
+  document.getElementById('out').textContent = (ok ? 'ALL PASS' : 'SOME FAILED') + '\n' + lines.join('\n');
+  document.title = ok ? 'ALL PASS' : 'SOME FAILED';
+})();
+</script>

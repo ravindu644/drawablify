@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Every request stays on this origin, including remote images or fonts inside a converted SVG. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self'; connect-src 'self'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>SVG to VectorDrawable</title>
+<meta name="description" content="Convert SVG, PNG, JPEG and GIF images to Android VectorDrawable XML in your browser.">
+<link rel="icon" href="icon.svg">
+<style>
+/* Tokens: see DESIGN.md. Dark is the default, light follows the system. */
+:root {
+  color-scheme: dark;
+  --primary: #a2cde2; --on-primary: #174557;
+  --secondary-container: #2a3e48; --on-secondary-container: #adc3ce;
+  --tertiary: #d1dcff; --error: #fa746f;
+  --surface: #0b0f11; --surface-lowest: #000000; --surface-low: #0f1417;
+  --surface-container: #141a1e; --surface-high: #1a2124; --surface-highest: #1f272b;
+  --on-surface: #dee7ec; --on-surface-variant: #a4acb2; --outline-variant: #41494e;
+  --motion-press: 350ms cubic-bezier(0.42, 1.67, 0.21, 0.9);
+  --motion-effects: 182ms linear(0, 0.0805, 0.2403, 0.409, 0.5576, 0.6777, 0.7697, 0.838, 0.8874, 0.9225, 0.9471, 0.9641, 0.9758, 0.9838, 0.9892, 0.9928, 0.9952, 0.9968, 0.9979, 0.9986, 0.9991, 0.9994, 0.9996, 0.9997, 1);
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --primary: #28667e; --on-primary: #f3faff;
+    --secondary-container: #d0e6f2; --on-secondary-container: #40555f;
+    --tertiary: #4f5e84; --error: #a83836;
+    --surface: #f7fafc; --surface-lowest: #ffffff; --surface-low: #eff4f8;
+    --surface-container: #e9eff3; --surface-high: #e2e9ee; --surface-highest: #dbe4e9;
+    --on-surface: #2b3438; --on-surface-variant: #586065; --outline-variant: #abb3b9;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--surface); color: var(--on-surface); font: 400 16px/24px var(--sans); letter-spacing: .5px; }
+main { max-width: 960px; margin: 0 auto; padding: 48px 24px 64px; }
+h1 { font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: 0; margin: 0 0 12px; }
+.intro { font-size: 22px; line-height: 28px; color: var(--on-surface-variant); margin: 0 0 32px; max-width: 68ch; letter-spacing: 0; }
+.small { color: var(--on-surface-variant); font-size: 14px; line-height: 20px; letter-spacing: .25px; }
+
+#drop { display: block; border: 1px dashed var(--outline-variant); border-radius: 28px; padding: 48px 24px; text-align: center;
+  cursor: pointer; background: var(--surface-container); transition: background var(--motion-effects), border-color var(--motion-effects); }
+#drop:hover { background: var(--surface-highest); }
+#drop.over, #drop:focus-within { border-color: var(--primary); }
+#drop strong { color: var(--primary); font-weight: 600; }
+#drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+
+.row { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; margin: 24px 0; }
+label.field { display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--on-surface-variant); }
+select, input[type=number], textarea, button { font: inherit; color: inherit; }
+select, input[type=number] { height: 48px; padding: 0 16px; border-radius: 16px; border: 1px solid var(--outline-variant); background: var(--surface-container); }
+textarea { width: 100%; padding: 20px; border-radius: 16px; border: 1px solid var(--outline-variant); background: var(--surface-lowest);
+  font: 400 14px/22px var(--mono); letter-spacing: 0; resize: vertical; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+button { height: 48px; padding: 0 24px; border-radius: 24px; border: 1px solid var(--outline-variant); background: transparent;
+  color: var(--on-surface-variant); font-size: 14px; line-height: 20px; font-weight: 600; letter-spacing: .1px; cursor: pointer;
+  transition: border-radius var(--motion-press), background var(--motion-effects); }
+button:hover { background: var(--surface-highest); }
+button:active { border-radius: 12px; transition-duration: 0ms, 182ms; }
+button.filled { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+
+details { margin: 0 0 24px; }
+summary { cursor: pointer; color: var(--on-surface-variant); padding: 12px 0; }
+details textarea { margin: 8px 0 12px; }
+
+#results { display: grid; gap: 16px; }
+.card { background: var(--surface-container); border: 1px solid var(--outline-variant); border-radius: 28px; padding: 24px; }
+.card header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card h3 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: .15px; word-break: break-all; }
+.status { color: var(--on-surface-variant); font-size: 14px; }
+.failed .status { color: var(--error); }
+.failed .body { display: none; }
+.previews { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 12px; }
+figure { margin: 0; }
+figcaption { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--on-surface-variant); margin-top: 8px; }
+/* The checkerboard is the one gradient: it shows where the drawing is transparent. */
+.previews img { display: block; width: 100%; height: 160px; object-fit: contain; border-radius: 16px; border: 1px solid var(--outline-variant);
+  background: var(--surface-high) repeating-conic-gradient(var(--surface-highest) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+.warnings { color: var(--tertiary); font-size: 14px; line-height: 20px; margin: 0 0 12px; padding-left: 20px; }
+.warnings:empty { display: none; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+footer { margin-top: 48px; color: var(--on-surface-variant); font-size: 14px; line-height: 20px; max-width: 68ch; }
+footer p { margin: 0 0 12px; }
+code { font-family: var(--mono); }
+
+@media (max-width: 599px) {
+  main { padding: 32px 16px 48px; }
+  .previews { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+  button:active { border-radius: 24px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>SVG to Android VectorDrawable</h1>
+  <p class="intro">Converts SVG, PNG, JPEG and GIF files to VectorDrawable XML. Files are converted in your browser and never uploaded.</p>
+
+  <label id="drop">
+    <input id="file" type="file" multiple accept=".svg,image/svg+xml,image/png,image/jpeg,image/gif,image/webp,image/bmp">
+    <strong>Choose files</strong> or drop them on the page
+    <div class="small">Pasting an image or SVG markup with Ctrl+V also works.</div>
+  </label>
+
+  <div class="row">
+    <label class="field">Decimal places
+      <input id="precision" type="number" min="0" max="6" value="2">
+    </label>
+    <label class="field">Tracing preset for PNG, JPEG and GIF
+      <select id="preset">
+        <option>default</option><option>posterized1</option><option>posterized2</option><option>posterized3</option>
+        <option>curvy</option><option>sharp</option><option>detailed</option><option>smoothed</option>
+        <option>grayscale</option><option>fixedpalette</option><option>randomsampling1</option><option>randomsampling2</option>
+        <option>artistic1</option><option>artistic2</option><option>artistic3</option><option>artistic4</option>
+      </select>
+    </label>
+    <button id="clear" type="button">Clear results</button>
+  </div>
+
+  <details>
+    <summary>Paste SVG markup</summary>
+    <textarea id="paste" rows="6" placeholder="<svg ...>...</svg>" aria-label="SVG markup"></textarea>
+    <button id="paste-go" class="filled" type="button">Convert</button>
+  </details>
+
+  <section id="results" aria-live="polite"></section>
+
+  <footer>
+    <p>Supported: paths, basic shapes, groups, transforms, CSS styles, <code>&lt;use&gt;</code>, clip paths, and linear and radial gradients. Gradients need API 24 or newer.</p>
+    <p>VectorDrawable has no text, masks, filters, patterns, markers or dashed strokes. When an SVG uses them, the result lists a warning.</p>
+  </footer>
+</main>
+
+<template id="card">
+  <article class="card">
+    <header><h3></h3><span class="status"></span></header>
+    <div class="body">
+      <div class="previews">
+        <figure><img class="orig" alt="Original"><figcaption>Original</figcaption></figure>
+        <figure><img class="out" alt="VectorDrawable preview"><figcaption>VectorDrawable</figcaption></figure>
+      </div>
+      <ul class="warnings"></ul>
+      <textarea rows="8" readonly aria-label="VectorDrawable XML"></textarea>
+      <div class="actions">
+        <button class="copy filled" type="button">Copy XML</button>
+        <button class="save" type="button">Download</button>
+      </div>
+    </div>
+  </article>
+</template>
+
+<script src="convert.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

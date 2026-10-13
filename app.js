@@ -99,10 +99,35 @@ function dismiss(item) {
     // Keep keyboard focus on the page: the next card's X, or the file picker once nothing is left.
     ($('#results .remove') || $('#file')).focus();
   };
-  // Let the card fade out first. Reduced motion turns the animation off, and then no animationend fires.
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return gone();
+  // Reduced motion turns the animations off, and then no animationend would fire.
+  if (reduced()) return gone();
+  if (!items.length) {
+    // The last one: the whole loaded view sinks out together, then the empty state rises in.
+    const main = $('main'), footer = $('footer');
+    main.classList.add('swapping');
+    footer.addEventListener('animationend', function done(e) {
+      if (e.animationName !== 'sink') return;
+      footer.removeEventListener('animationend', done);
+      main.classList.remove('swapping');
+      gone();
+    });
+    return;
+  }
   card.classList.add('leaving');
-  card.addEventListener('animationend', gone, { once: true });
+  card.addEventListener('animationend', () => slideIntoGap(gone), { once: true });
+}
+
+const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Removing a card shortens the list; slide what was below it up (FLIP) instead of letting it snap.
+function slideIntoGap(remove) {
+  const els = [...$('#results').children, $('footer')];
+  const tops = els.map(el => el.getBoundingClientRect().top);
+  remove();
+  els.forEach((el, i) => {
+    const dy = tops[i] - el.getBoundingClientRect().top;
+    if (el.isConnected && dy) el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 472, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
+  });
 }
 
 // Tapping a preview opens it large, with a switch to compare the original and the output.
@@ -133,8 +158,16 @@ viewer.addEventListener('close', () => {
   syncPreset();
 });
 viewer.querySelectorAll('[data-show]').forEach(b => (b.onclick = () => showInViewer(b.dataset.show)));
-$('#viewer-close').onclick = () => viewer.close();
-viewer.onclick = e => { if (e.target === viewer) viewer.close(); }; // the dialog box itself is only hit outside .viewer-body
+// Closing plays the opening in reverse. Escape goes through 'cancel', so it gets the same exit.
+function closeViewer() {
+  if (reduced()) return viewer.close();
+  if (viewer.classList.contains('closing')) return;
+  viewer.classList.add('closing');
+  viewer.addEventListener('animationend', () => { viewer.classList.remove('closing'); viewer.close(); }, { once: true });
+}
+viewer.addEventListener('cancel', e => { e.preventDefault(); closeViewer(); });
+$('#viewer-close').onclick = closeViewer;
+viewer.onclick = e => { if (e.target === viewer) closeViewer(); }; // the dialog box itself is only hit outside .viewer-body
 viewer.onkeydown = e => {
   if (e.target.closest('input, select')) return; // arrows belong to the field there
   if (e.key === 'ArrowLeft') showInViewer('orig');
@@ -144,8 +177,13 @@ viewer.onkeydown = e => {
 // Empty: show the ways in. Loaded: hide them and show the options and the inputs.
 function syncView() {
   const loaded = items.length > 0;
+  if (loaded === $('#start').hidden) return syncPreset();
   $('#start').hidden = loaded;
   $('#work').hidden = !loaded;
+  const footer = $('footer');
+  footer.classList.remove('arrive');
+  void footer.offsetWidth; // restart the animation
+  footer.classList.add('arrive');
   syncPreset();
 }
 

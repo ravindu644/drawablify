@@ -136,13 +136,23 @@ dialog:focus { outline: none; }
 @keyframes pop { from { opacity: 0; transform: scale(.96); } }
 @keyframes leave { to { opacity: 0; transform: scale(.96); } }
 @keyframes turn { from { opacity: 0; transform: rotate(-90deg) scale(.6); } }
+@keyframes sink { to { opacity: 0; transform: translateY(8px); } }
+@keyframes shrink { to { opacity: 0; transform: scale(.96); } }
 .card { animation: rise var(--motion-spatial) both; }
 .card.leaving { animation: leave var(--motion-effects-default) forwards; pointer-events: none; }
-#start:not([hidden]), #work:not([hidden]) { animation: fade var(--motion-effects-default); }
+#start:not([hidden]) { animation: rise var(--motion-spatial) both; }
+#work:not([hidden]) { animation: fade var(--motion-effects-default); }
+/* Back to the empty state: everything under the header leaves together, so nothing is left to jump. */
+main.swapping #work, main.swapping footer { animation: sink var(--motion-effects-default) forwards; }
+main.swapping { pointer-events: none; }
+/* The footer changes place whenever the state swaps; it fades in there instead of being seen to jump. */
+footer.arrive { animation: fade var(--motion-effects-default) 120ms both; }
 details[open] > :not(summary) { animation: rise var(--motion-spatial); }
 dialog[open] { animation: pop var(--motion-spatial); }
 dialog[open]::backdrop { animation: fade var(--motion-effects-default); }
 #theme.turned svg { animation: turn var(--motion-spatial); }
+dialog.closing { animation: shrink var(--motion-effects) forwards; }
+dialog.closing::backdrop { animation: fade var(--motion-effects) reverse forwards; }
 
 footer { margin-top: 48px; color: var(--on-surface-variant); font-size: 14px; line-height: 20px; }
 footer p { margin: 0 0 12px; }

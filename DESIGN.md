@@ -364,15 +364,22 @@ Objects move. Text never moves on its own.
 3. **Arrival.** A result card rises 16px and fades in over the spatial spring when it is added.
    The paste box does the same when its disclosure opens. Each happens once.
 4. **Removal.** A removed card fades and shrinks to 96% over effects-default (269ms), then
-   leaves the layout.
-5. **State change.** The empty and loaded sections fade in over effects-default when they swap.
+   leaves the layout, and the cards and footer below slide up into the gap (FLIP, 472ms,
+   `cubic-bezier(0.2, 0, 0, 1)`) instead of snapping.
+5. **State change.** Removing the last card does not animate the card alone: everything under
+   the header (options, card, footer) sinks 8px and fades out together over effects-default.
+   Then the empty state rises in over the spatial spring and the footer fades in at its new
+   place after 120ms. The footer re-enters the same way on every state swap. Rule: anything that
+   changes position during a swap is invisible while it does. The first version faded the card
+   alone and left the footer to jump 600px in one frame, which read as a glitch.
 6. **Theme change.** Background, text and border colours ease over effects-default. The toggle
    icon turns in from -90 degrees, only after a click, never on page load.
 7. **Viewer.** The preview dialog scales in from 96% over the spatial spring, and its scrim
-   fades in.
+   fades in. Closing, by the X, Escape or the scrim, plays it in reverse over effects-fast.
 
 Under `prefers-reduced-motion: reduce` every transition and animation is off, buttons do not
-morph, and a removed card leaves at once.
+morph, and a removed card, the state swap and the viewer close all happen at once. The code
+checks the preference before waiting on an `animationend` that would never fire.
 
 ## Do's and Don'ts
 

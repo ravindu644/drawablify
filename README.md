@@ -4,6 +4,8 @@ Converts SVG, PNG, JPEG, GIF, WebP and BMP files to Android VectorDrawable XML i
 Files are never uploaded. No build step and no requests to other sites. After the first visit
 the page also works offline.
 
+![A converted icon: original and VectorDrawable previews side by side, with the generated XML](screenshots/result-dark.png)
+
 ## Run
 
 Serve the folder with any static file server:
@@ -26,6 +28,12 @@ tracing and the offline cache need http.
 
 VectorDrawable has no text, masks, filters, patterns, markers or dashed strokes. When an SVG uses
 them, the result lists a warning.
+
+## Screenshots
+
+| Start | Large preview, light theme | Phone |
+| --- | --- | --- |
+| <img src="screenshots/home-dark.png" alt="The empty start page with the drop zone"> | <img src="screenshots/viewer-light.png" alt="The large preview with the Original and VectorDrawable switch and the options"> | <img src="screenshots/mobile-dark.png" alt="A converted icon on a phone-sized screen" width="220"> |
 
 ## Test
 

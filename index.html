@@ -8,6 +8,7 @@
 <title>SVG to VectorDrawable</title>
 <meta name="description" content="Convert SVG, PNG, JPEG and GIF images to Android VectorDrawable XML in your browser.">
 <link rel="icon" href="icon.svg">
+<meta name="theme-color" content="#0b0f11">
 <script src="theme.js"></script>
 <style>
 /* Tokens: see DESIGN.md. Dark is the default, light follows the system unless the toggle overrides it. */
@@ -65,7 +66,6 @@ h1 { font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: 0; ma
 
 #drop { display: block; border: 1px dashed var(--outline-variant); border-radius: 28px; padding: 48px 24px; text-align: center;
   cursor: pointer; background: var(--surface-container); transition: background var(--motion-effects), border-color var(--motion-effects); }
-#drop:hover { background: var(--surface-highest); }
 #drop:focus-within, .over #drop { border-color: var(--primary); }
 .over #results { outline: 1px dashed var(--primary); outline-offset: 8px; border-radius: 28px; }
 #drop strong { color: var(--primary); font-weight: 600; }
@@ -83,7 +83,6 @@ textarea { width: 100%; padding: 20px; border-radius: 16px; border: 1px solid va
 button, .icon { height: 48px; padding: 0 24px; border-radius: 24px; border: 1px solid var(--outline-variant); background: transparent;
   color: var(--on-surface-variant); font-size: 14px; line-height: 20px; font-weight: 600; letter-spacing: .1px; cursor: pointer;
   transition: border-radius var(--motion-press), background var(--motion-effects); }
-button:hover, .icon:hover { background: var(--surface-highest); }
 button:active, .icon:active { border-radius: 12px; transition-duration: 0ms, 182ms; }
 button:disabled { opacity: .38; cursor: default; background: transparent; border-radius: 24px; }
 button.filled { background: var(--primary); color: var(--on-primary); border-color: transparent; }
@@ -107,8 +106,7 @@ figure { margin: 0; }
 figcaption { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--on-surface-variant); margin-top: 8px; }
 /* The checkerboard is the one gradient: it shows where the drawing is transparent. */
 .zoom { display: block; width: 100%; height: auto; padding: 0; border: 0; border-radius: 16px; background: none; cursor: zoom-in; }
-.zoom:hover, .zoom:active { background: none; border-radius: 16px; }
-.zoom:hover img { border-color: var(--on-surface-variant); }
+.zoom:active { background: none; border-radius: 16px; }
 .previews img, #viewer-img { display: block; width: 100%; height: 160px; object-fit: contain; border-radius: 16px; border: 1px solid var(--outline-variant); transition: border-color var(--motion-effects);
   background: var(--surface-high) repeating-conic-gradient(var(--surface-highest) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
 .warnings { color: var(--tertiary); font-size: 14px; line-height: 20px; margin: 0 0 12px; padding-left: 20px; }
@@ -123,7 +121,8 @@ dialog:focus { outline: none; }
 .viewer-body { padding: 16px 24px 24px; display: grid; gap: 12px; }
 #viewer-name { margin: 0; }
 .viewer-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-right: -12px; }
-#viewer-img { height: min(70dvh, 640px); }
+#viewer-img { height: min(60dvh, 640px); }
+#viewer-options #options { margin: 0; }
 .seg { display: flex; }
 .seg button { padding: 0 16px; }
 .seg button + button { margin-left: -1px; }
@@ -149,11 +148,38 @@ footer { margin-top: 48px; color: var(--on-surface-variant); font-size: 14px; li
 footer p { margin: 0 0 12px; }
 code { font-family: var(--mono); }
 
+/* Hover only where there is a real pointer: on touch screens a tapped element would stay "hovered". */
+@media (hover: hover) {
+  #drop:hover { background: var(--surface-highest); }
+  button:hover, .icon:hover { background: var(--surface-highest); }
+  .zoom:hover { background: none; }
+  .zoom:hover img { border-color: var(--on-surface-variant); }
+}
+/* Dropping and Ctrl+V need a mouse and keyboard; on a phone those hints only promise what cannot happen. */
+@media (pointer: coarse) {
+  .pointer-only { display: none; }
+}
+button, .icon, summary, label { -webkit-tap-highlight-color: transparent; }
+
 @media (max-width: 599px) {
+  #drop { padding: 32px 16px; }
+  #options { gap: 12px; }
+  #options label.field { flex: 1 1 140px; }
+  #options select, #options input { width: 100%; }
+  .card { padding: 16px; border-radius: 24px; }
+  .card header { margin: -8px -8px 0 0; }
+  .previews { gap: 8px; }
+  .previews img { height: 128px; }
+  .actions button { flex: 1; }
+  /* iOS zooms the page into any field under 16px when it is focused for typing. */
+  #paste { font-size: 16px; }
+  dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: 24px; }
+  .viewer-body { padding: 8px 16px 16px; }
+  #viewer-img { height: 45dvh; }
+
   main { padding: 24px 16px 48px; }
   h1 { font-size: 28px; line-height: 36px; }
   .intro { font-size: 16px; line-height: 24px; }
-  .previews { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
@@ -180,8 +206,8 @@ code { font-family: var(--mono); }
   <section id="start">
     <label id="drop">
       <input id="file" type="file" multiple accept=".svg,image/svg+xml,image/png,image/jpeg,image/gif,image/webp,image/bmp">
-      <strong>Choose files</strong> or drop them on the page
-      <div class="small">Pasting an image or SVG markup with Ctrl+V also works.</div>
+      <strong>Choose files</strong><span class="pointer-only"> or drop them on the page</span>
+      <div class="small pointer-only">Pasting an image or SVG markup with Ctrl+V also works.</div>
     </label>
     <details>
       <summary>Paste SVG markup</summary>
@@ -193,7 +219,7 @@ code { font-family: var(--mono); }
   <section id="work" hidden>
     <div id="options">
       <label class="field">Decimal places
-        <input id="precision" type="number" min="0" max="6" value="2">
+        <input id="precision" type="number" inputmode="numeric" min="0" max="6" value="2">
       </label>
       <label class="field">Tracing preset for PNG, JPEG and GIF
         <select id="preset">
@@ -205,7 +231,7 @@ code { font-family: var(--mono); }
       </label>
       <button id="reset" type="button" disabled>Reset</button>
     </div>
-    <p class="small hint">Changes apply right away. Drop or paste more files to add them.</p>
+    <p class="small hint">Changes apply right away, also from the large preview.<span class="pointer-only"> Drop or paste more files to add them.</span></p>
     <div id="results" aria-live="polite"></div>
   </section>
 
@@ -228,6 +254,7 @@ code { font-family: var(--mono); }
     </div>
     <img id="viewer-img" alt="">
     <p id="viewer-name" class="small"></p>
+    <div id="viewer-options"></div>
   </div>
 </dialog>
 
@@ -245,7 +272,7 @@ code { font-family: var(--mono); }
         <figure><button class="zoom" type="button" data-show="out" aria-label="View VectorDrawable larger"><img class="out" alt=""></button><figcaption>VectorDrawable</figcaption></figure>
       </div>
       <ul class="warnings"></ul>
-      <textarea rows="8" readonly aria-label="VectorDrawable XML"></textarea>
+      <textarea rows="8" readonly wrap="off" aria-label="VectorDrawable XML"></textarea>
       <div class="actions">
         <button class="copy filled" type="button">Copy XML</button>
         <button class="save" type="button">Download</button>

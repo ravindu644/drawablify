@@ -234,8 +234,26 @@ One column. The page has two states and shows only what the current one needs.
   cards (newest first), footer. The drop zone and paste box are hidden. Dropping or pasting
   still adds files.
 
-Removing the last card returns to the empty state. Under 600px the two previews stack and the
-title and intro step down one size.
+Removing the last card returns to the empty state.
+
+### Mobile
+
+Under 600px:
+
+- The title steps down to 28/36 and the intro to `body-lg`. The side gutter is 16.
+- Cards take 16 padding and radius 24. The two previews stay side by side at 128px tall, because
+  comparing them is the point; stacked, one is always off screen.
+- The option fields share a row and grow to fill it. Copy and Download split the card width,
+  so both are wide tap targets.
+- The XML pane does not wrap lines; it scrolls sideways, like code.
+- The paste box uses 16px text, because iOS zooms the page into any field smaller than that.
+- The viewer is the full width less 8px each side, and its image is 45% of the viewport height
+  so the options stay on screen below it.
+
+Hover styles apply only under `(hover: hover)`, so a tapped element on a touch screen does not
+stay highlighted. Under `(pointer: coarse)` the hints about dropping files and Ctrl+V are hidden,
+because a phone can do neither. The `theme-color` meta follows the page surface, including a
+toggled theme, so the phone's browser bar matches the page.
 
 ## Elevation and depth
 
@@ -307,6 +325,12 @@ Tapping or clicking either preview opens a native `<dialog>`: the image large on
 checkerboard, an Original / VectorDrawable segmented switch, the file name, and a close X. The
 switch is how you compare input and output, so it opens on the side that was tapped. Left and
 Right arrow keys switch too; Escape, the X, or a click on the scrim closes it.
+
+The options row moves into the viewer while it is open, so decimal places, the tracing preset
+and Reset work there and the large image redraws as they change. It is the same element moved,
+not a copy, so the two can never disagree. The caption under the image shows the file name and
+the current size, and says "Converting" while a change is being applied. The preset shows only
+when the viewed file is a raster.
 
 The segmented switch is the M3 segmented button: outlined segments joined into one pill, the
 selected one on `secondary-container`. It is not `primary`, because the dialog has no primary

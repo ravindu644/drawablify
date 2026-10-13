@@ -67,6 +67,7 @@ async function render(item) {
   if (!card.isConnected) return; // removed while queued
   const status = card.querySelector('.status');
   status.textContent = 'Converting';
+  syncCaption(item);
   try {
     const svg = await source(item);
     const orig = card.querySelector('.orig');
@@ -82,6 +83,8 @@ async function render(item) {
     card.classList.add('failed');
     status.textContent = err.message || String(err);
   }
+  if (viewer.open && viewing === item) showInViewer(viewingWhich);
+  syncCaption(item);
 }
 
 function dismiss(item) {
@@ -103,9 +106,12 @@ function dismiss(item) {
 }
 
 // Tapping a preview opens it large, with a switch to compare the original and the output.
+// The real options row moves into the viewer while it is open, so there is one set of controls and
+// the large preview redraws as they change.
 const viewer = $('#viewer');
-let viewing;
+let viewing, viewingWhich;
 function showInViewer(which) {
+  viewingWhich = which;
   $('#viewer-img').src = viewing.card.querySelector('.' + which).src;
   $('#viewer-img').alt = which === 'orig' ? 'Original' : 'VectorDrawable preview';
   viewer.querySelectorAll('[data-show]').forEach(b => b.setAttribute('aria-pressed', b.dataset.show === which));
@@ -113,14 +119,24 @@ function showInViewer(which) {
 function openViewer(item, which) {
   if (!item.card.querySelector('.' + which).src) return; // still converting
   viewing = item;
-  $('#viewer-name').textContent = xmlName(item.name);
   showInViewer(which);
+  $('#viewer-options').append($('#options'));
   viewer.showModal();
+  syncCaption(item);
+  syncPreset();
 }
+function syncCaption(item) {
+  if (viewing === item) $('#viewer-name').textContent = `${xmlName(item.name)}, ${item.card.querySelector('.status').textContent}`;
+}
+viewer.addEventListener('close', () => {
+  $('.hint').before($('#options'));
+  syncPreset();
+});
 viewer.querySelectorAll('[data-show]').forEach(b => (b.onclick = () => showInViewer(b.dataset.show)));
 $('#viewer-close').onclick = () => viewer.close();
 viewer.onclick = e => { if (e.target === viewer) viewer.close(); }; // the dialog box itself is only hit outside .viewer-body
 viewer.onkeydown = e => {
+  if (e.target.closest('input, select')) return; // arrows belong to the field there
   if (e.key === 'ArrowLeft') showInViewer('orig');
   if (e.key === 'ArrowRight') showInViewer('out');
 };
@@ -130,8 +146,12 @@ function syncView() {
   const loaded = items.length > 0;
   $('#start').hidden = loaded;
   $('#work').hidden = !loaded;
-  // The preset only steers raster tracing; next to SVG inputs it would be a control that does nothing.
-  $('#preset').closest('label').hidden = !items.some(i => i.raster);
+  syncPreset();
+}
+
+// The preset only steers raster tracing; next to SVG inputs it would be a control that does nothing.
+function syncPreset() {
+  $('#preset').closest('label').hidden = viewer.open ? !viewing.raster : !items.some(i => i.raster);
 }
 
 function syncReset() {
@@ -185,6 +205,8 @@ function syncTheme() {
   $('#theme').title = label;
   $('#theme .sun').style.display = light() ? 'none' : '';
   $('#theme .moon').style.display = light() ? '' : 'none';
+  // Mobile browsers tint their toolbar with this; follow the page, including a toggled theme.
+  $('meta[name=theme-color]').content = getComputedStyle(root).getPropertyValue('--surface').trim();
 }
 $('#theme').onclick = () => {
   root.dataset.theme = light() ? 'dark' : 'light';

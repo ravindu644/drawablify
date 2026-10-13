@@ -303,8 +303,9 @@ shows what Android will draw. Both sit on a checkerboard so transparency is visi
 
 ### Options
 
-Shown only in the loaded state. Changing decimal places re-renders every result. Changing the
-tracing preset re-traces every raster result. There is no "apply" button. Reset puts both back
+Shown only in the loaded state. Changing decimal places re-renders every result. The tracing
+preset is shown only while a PNG, JPEG or GIF is loaded, because it steers raster tracing and
+does nothing to an SVG. Changing it re-traces every raster result. There is no "apply" button. Reset puts both back
 to their defaults (2, `default`) and re-renders.
 
 While a file is dragged over the page, the drop zone border turns `primary` in the empty state,

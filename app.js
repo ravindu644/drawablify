@@ -100,6 +100,8 @@ function syncView() {
   const loaded = items.length > 0;
   $('#start').hidden = loaded;
   $('#work').hidden = !loaded;
+  // The preset only steers raster tracing; next to SVG inputs it would be a control that does nothing.
+  $('#preset').closest('label').hidden = !items.some(i => i.raster);
 }
 
 function syncReset() {

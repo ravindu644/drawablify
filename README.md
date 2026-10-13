@@ -4,6 +4,8 @@ Converts SVG, PNG, JPEG, GIF, WebP and BMP files to Android VectorDrawable XML i
 Files are never uploaded. No build step and no requests to other sites. After the first visit
 the page also works offline.
 
+**Use it:** https://ravindu644.github.io/drawablify/
+
 ![A converted icon: original and VectorDrawable previews side by side, with the generated XML](screenshots/result-dark.png)
 
 ## Run

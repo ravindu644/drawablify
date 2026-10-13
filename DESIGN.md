@@ -211,8 +211,7 @@ headline, 600 for titles and labels, 400 for everything else.
 | XML, SVG markup | `code`, 14/22 |
 
 The intro sentence is capped at 68 characters a line. The footer notes run the full content
-width, side by side from 900px: they are two short reference lines, and a cap left a ragged empty
-column beside them.
+width: they are two short reference lines, and a cap left a ragged empty column beside them.
 Headlines are one sentence in one colour.
 
 ## Layout
@@ -242,8 +241,8 @@ One column. The page has two states and shows only what the current one needs.
 Removing the last card returns to the empty state.
 
 From 900px wide, a result card turns sideways: the two previews (224px tall) on the left, the
-XML on the right filling the card's height, Copy and Download under the XML. The two footer notes
-sit side by side. A tall card down the middle of a wide screen left most of it empty.
+XML on the right filling the card's height, Copy and Download under the XML. A tall card down
+the middle of a wide screen left most of it empty.
 
 ### Mobile
 

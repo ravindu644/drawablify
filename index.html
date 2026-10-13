@@ -76,7 +76,11 @@ h1 { font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: 0; ma
 #drop strong { color: var(--primary); font-weight: 600; }
 #drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 
-#options { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; margin: 0 0 8px; }
+.options { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.card .options { margin: 0 0 12px; }
+/* In a card the fields share the row and grow, so a narrow column never leaves a ragged gap. */
+.card .options label.field { flex: 1 1 120px; }
+.card .options select, .card .options input { width: 100%; }
 .hint { margin: 0 0 24px; }
 label.field { display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--on-surface-variant); }
 select, input[type=number], textarea, button { font: inherit; color: inherit; }
@@ -127,7 +131,6 @@ dialog:focus { outline: none; }
 #viewer-name { margin: 0; }
 .viewer-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-right: -12px; }
 #viewer-img { height: min(60dvh, 640px); }
-#viewer-options #options { margin: 0; }
 .seg { display: flex; }
 .seg button { padding: 0 16px; }
 .seg button + button { margin-left: -1px; }
@@ -164,8 +167,9 @@ footer p { margin: 0 0 12px; }
 /* Wide screens: the card turns sideways, previews on the left and the XML filling the right, so a
    result fits on one screen instead of being a tall strip down the middle. */
 @media (min-width: 900px) {
-  .body { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto 1fr auto; column-gap: 24px;
-    grid-template-areas: "prev xml" "warn xml" ". act"; margin-top: 12px; }
+  .body { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: 24px;
+    grid-template-areas: "prev xml" "opts xml" "warn xml" ". act"; grid-template-rows: auto auto 1fr auto; margin-top: 12px; }
+  .card .options { grid-area: opts; margin: 16px 0 0; }
   .previews { grid-area: prev; margin: 0; }
   .previews img { height: 224px; }
   .warnings { grid-area: warn; margin: 12px 0 0; }
@@ -189,9 +193,8 @@ button, .icon, summary, label { -webkit-tap-highlight-color: transparent; }
 
 @media (max-width: 599px) {
   #drop { padding: 32px 16px; }
-  #options { gap: 12px; }
-  #options label.field { flex: 1 1 140px; }
-  #options select, #options input { width: 100%; }
+  .options label.field { flex: 1 1 120px; }
+  .options select, .options input { width: 100%; }
   .card { padding: 16px; border-radius: 24px; }
   .card header { margin: -8px -8px 0 0; }
   .previews { gap: 8px; }
@@ -246,21 +249,7 @@ button, .icon, summary, label { -webkit-tap-highlight-color: transparent; }
   </section>
 
   <section id="work" hidden>
-    <div id="options">
-      <label class="field">Decimal places
-        <input id="precision" type="number" inputmode="numeric" min="0" max="6" value="2">
-      </label>
-      <label class="field">Tracing preset for PNG, JPEG and GIF
-        <select id="preset">
-          <option>default</option><option>posterized1</option><option>posterized2</option><option>posterized3</option>
-          <option>curvy</option><option>sharp</option><option>detailed</option><option>smoothed</option>
-          <option>grayscale</option><option>fixedpalette</option><option>randomsampling1</option><option>randomsampling2</option>
-          <option>artistic1</option><option>artistic2</option><option>artistic3</option><option>artistic4</option>
-        </select>
-      </label>
-      <button id="reset" type="button" disabled>Reset</button>
-    </div>
-    <p class="small hint">Changes apply right away, also from the large preview.<span class="pointer-only"> Drop or paste more files to add them.</span></p>
+    <p class="small hint pointer-only">Drop or paste more files to add them.</p>
     <div id="results" aria-live="polite"></div>
   </section>
 
@@ -286,6 +275,24 @@ button, .icon, summary, label { -webkit-tap-highlight-color: transparent; }
     <div id="viewer-options"></div>
   </div>
 </dialog>
+
+<!-- One set per card and one in the viewer, all cloned from here so the preset list exists once. -->
+<template id="opts">
+  <div class="options">
+    <label class="field">Decimal places
+      <input class="precision" type="number" inputmode="numeric" min="0" max="6" value="2">
+    </label>
+    <label class="field">Tracing preset
+      <select class="preset">
+        <option>default</option><option>posterized1</option><option>posterized2</option><option>posterized3</option>
+        <option>curvy</option><option>sharp</option><option>detailed</option><option>smoothed</option>
+        <option>grayscale</option><option>fixedpalette</option><option>randomsampling1</option><option>randomsampling2</option>
+        <option>artistic1</option><option>artistic2</option><option>artistic3</option><option>artistic4</option>
+      </select>
+    </label>
+    <button class="reset" type="button" disabled>Reset</button>
+  </div>
+</template>
 
 <template id="card">
   <article class="card">

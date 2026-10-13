@@ -26,9 +26,9 @@ const xmlName = name => {
 };
 
 const DEFAULTS = { precision: '2', preset: 'default' };
-const precision = () => Math.min(6, Math.max(0, Math.round(+$('#precision').value || 0)));
+const precision = item => Math.min(6, Math.max(0, Math.round(+item.opts.precision || 0)));
 
-// Every result keeps its input, so changing an option re-renders it in place.
+// Every result keeps its input and its own options, so changing one re-renders only that result.
 // Runs are queued because the tracer worker answers one image at a time.
 let items = [], queue = Promise.resolve();
 const enqueue = item => (queue = queue.then(() => render(item)));
@@ -38,7 +38,9 @@ function add(name, input) {
   const card = $('#card').content.firstElementChild.cloneNode(true);
   card.querySelector('h3').textContent = xmlName(name);
   $('#results').prepend(card);
-  const item = { name, input, raster, card };
+  const item = { name, input, raster, card, opts: { ...DEFAULTS } };
+  card.querySelector('.previews').after(bindOptions($('#opts').content.firstElementChild.cloneNode(true), () => item));
+  syncOptions(item);
   items.push(item);
   syncView();
   const remove = card.querySelector('.remove');
@@ -57,8 +59,8 @@ function add(name, input) {
 
 async function source(item) {
   if (!item.raster) return (item.svg ??= typeof item.input === 'string' ? item.input : await item.input.text());
-  const preset = $('#preset').value;
-  if (item.preset !== preset) { item.svg = await traceImage(item.input, preset); item.preset = preset; }
+  const { preset } = item.opts;
+  if (item.traced !== preset) { item.svg = await traceImage(item.input, preset); item.traced = preset; }
   return item.svg;
 }
 
@@ -72,7 +74,7 @@ async function render(item) {
     const svg = await source(item);
     const orig = card.querySelector('.orig');
     if (!orig.src) orig.src = URL.createObjectURL(item.raster ? item.input : new Blob([svg], { type: 'image/svg+xml' }));
-    const { xml, warnings } = svgToVector(svg, { precision: precision() });
+    const { xml, warnings } = svgToVector(svg, { precision: precision(item) });
     item.xml = xml;
     card.querySelector('.out').src = 'data:image/svg+xml,' + encodeURIComponent(vectorToSvg(xml));
     card.querySelector('textarea').value = xml;
@@ -130,10 +132,32 @@ function slideIntoGap(remove) {
   });
 }
 
+// A card's options and the viewer's copy both write to item.opts, then syncOptions puts the values
+// back into every control showing that item, so the card behind the viewer never disagrees with it.
+function bindOptions(el, current) {
+  const set = opts => { const item = current(); item.opts = opts; syncOptions(item); enqueue(item); };
+  el.querySelector('.precision').oninput = e => set({ ...current().opts, precision: e.target.value });
+  el.querySelector('.preset').onchange = e => set({ ...current().opts, preset: e.target.value });
+  el.querySelector('.reset').onclick = () => set({ ...DEFAULTS }); // traces are cached per preset, so this re-traces only if it moved
+  return el;
+}
+function syncOptions(item) {
+  const els = [item.card.querySelector('.options')];
+  if (viewing === item) els.push($('#viewer-options .options'));
+  for (const el of els) {
+    // Skip equal values so a field being typed in keeps its caret.
+    const precision = el.querySelector('.precision'), preset = el.querySelector('.preset');
+    if (precision.value !== item.opts.precision) precision.value = item.opts.precision;
+    if (preset.value !== item.opts.preset) preset.value = item.opts.preset;
+    // The preset only steers raster tracing; on an SVG it would be a control that does nothing.
+    preset.closest('label').hidden = !item.raster;
+    el.querySelector('.reset').disabled = item.opts.precision === DEFAULTS.precision && item.opts.preset === DEFAULTS.preset;
+  }
+}
+
 // Tapping a preview opens it large, with a switch to compare the original and the output.
-// The real options row moves into the viewer while it is open, so there is one set of controls and
-// the large preview redraws as they change.
 const viewer = $('#viewer');
+$('#viewer-options').append(bindOptions($('#opts').content.firstElementChild.cloneNode(true), () => viewing));
 let viewing, viewingWhich;
 function showInViewer(which) {
   viewingWhich = which;
@@ -145,18 +169,13 @@ function openViewer(item, which) {
   if (!item.card.querySelector('.' + which).src) return; // still converting
   viewing = item;
   showInViewer(which);
-  $('#viewer-options').append($('#options'));
+  syncOptions(item);
   viewer.showModal();
   syncCaption(item);
-  syncPreset();
 }
 function syncCaption(item) {
   if (viewing === item) $('#viewer-name').textContent = `${xmlName(item.name)}, ${item.card.querySelector('.status').textContent}`;
 }
-viewer.addEventListener('close', () => {
-  $('.hint').before($('#options'));
-  syncPreset();
-});
 viewer.querySelectorAll('[data-show]').forEach(b => (b.onclick = () => showInViewer(b.dataset.show)));
 // Closing plays the opening in reverse. Escape goes through 'cancel', so it gets the same exit.
 function closeViewer() {
@@ -177,23 +196,13 @@ viewer.onkeydown = e => {
 // Empty: show the ways in. Loaded: hide them and show the options and the inputs.
 function syncView() {
   const loaded = items.length > 0;
-  if (loaded === $('#start').hidden) return syncPreset();
+  if (loaded === $('#start').hidden) return;
   $('#start').hidden = loaded;
   $('#work').hidden = !loaded;
   const footer = $('footer');
   footer.classList.remove('arrive');
   void footer.offsetWidth; // restart the animation
   footer.classList.add('arrive');
-  syncPreset();
-}
-
-// The preset only steers raster tracing; next to SVG inputs it would be a control that does nothing.
-function syncPreset() {
-  $('#preset').closest('label').hidden = viewer.open ? !viewing.raster : !items.some(i => i.raster);
-}
-
-function syncReset() {
-  $('#reset').disabled = $('#precision').value === DEFAULTS.precision && $('#preset').value === DEFAULTS.preset;
 }
 
 function flash(btn, text) {
@@ -211,14 +220,6 @@ $('#paste-go').onclick = () => {
   $('#paste').value = '';
   $('details').open = false;
   add('pasted.svg', s);
-};
-$('#precision').oninput = () => { syncReset(); items.forEach(enqueue); };
-$('#preset').onchange = () => { syncReset(); items.filter(i => i.raster).forEach(enqueue); };
-$('#reset').onclick = () => {
-  $('#precision').value = DEFAULTS.precision;
-  $('#preset').value = DEFAULTS.preset;
-  syncReset();
-  items.forEach(enqueue); // traced SVGs are cached per preset, so this re-traces only if the preset moved
 };
 
 // The class goes on <body> so a drop target shows in both states, not only on the drop zone.

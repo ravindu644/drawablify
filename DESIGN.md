@@ -234,15 +234,15 @@ the theme toggle on the right. Its content lines up with the column below, and a
 One column. The page has two states and shows only what the current one needs.
 
 - **Empty:** title, intro, drop zone, the "Paste SVG markup" disclosure, footer.
-- **Loaded:** title, intro, the options row with Reset, a one-line hint, the inputs as result
+- **Loaded:** title, intro, a one-line hint, the inputs as result
   cards (newest first), footer. The drop zone and paste box are hidden. Dropping or pasting
   still adds files.
 
 Removing the last card returns to the empty state.
 
-From 900px wide, a result card turns sideways: the two previews (224px tall) on the left, the
-XML on the right filling the card's height, Copy and Download under the XML. A tall card down
-the middle of a wide screen left most of it empty.
+From 900px wide, a result card turns sideways: the two previews (224px tall) and the card's
+options on the left, the XML on the right filling the card's height, Copy and Download under
+the XML. A tall card down the middle of a wide screen left most of it empty.
 
 ### Mobile
 
@@ -334,9 +334,10 @@ checkerboard, an Original / VectorDrawable segmented switch, the file name, and 
 switch is how you compare input and output, so it opens on the side that was tapped. Left and
 Right arrow keys switch too; Escape, the X, or a click on the scrim closes it.
 
-The options row moves into the viewer while it is open, so decimal places, the tracing preset
-and Reset work there and the large image redraws as they change. It is the same element moved,
-not a copy, so the two can never disagree. The caption under the image shows the file name and
+The viewer has its own options row for the file it shows, so the large image redraws as they
+change. It and the card's row both write to the same per-file options and are synced from them,
+so the card behind the scrim always shows what the viewer shows. Nothing moves out of the card
+while the viewer is open; an earlier version moved the row and the card lost it behind the scrim. The caption under the image shows the file name and
 the current size, and says "Converting" while a change is being applied. The preset shows only
 when the viewed file is a raster.
 
@@ -349,10 +350,11 @@ and a border that steps to `on-surface-variant` on hover.
 
 ### Options
 
-Shown only in the loaded state. Changing decimal places re-renders every result. The tracing
-preset is shown only while a PNG, JPEG or GIF is loaded, because it steers raster tracing and
-does nothing to an SVG. Changing it re-traces every raster result. There is no "apply" button. Reset puts both back
-to their defaults (2, `default`) and re-renders.
+Each result card has its own options row under the previews, because one batch can mix files
+that want different settings. Changing decimal places re-renders only that card. The tracing
+preset shows only on PNG, JPEG and GIF cards, because it steers raster tracing and does nothing
+to an SVG. There is no "apply" button. Reset puts the card back to the defaults (2, `default`).
+The fields share the row and grow to fill it.
 
 While a file is dragged over the page, the drop zone border turns `primary` in the empty state,
 and a dashed `primary` outline appears around the results in the loaded state.
@@ -375,7 +377,7 @@ Objects move. Text never moves on its own.
    leaves the layout, and the cards and footer below slide up into the gap (FLIP, 472ms,
    `cubic-bezier(0.2, 0, 0, 1)`) instead of snapping.
 5. **State change.** Removing the last card does not animate the card alone: everything under
-   the header (options, card, footer) sinks 8px and fades out together over effects-default.
+   the header (hint, cards, footer) sinks 8px and fades out together over effects-default.
    Then the empty state rises in over the spatial spring and the footer fades in at its new
    place after 120ms. The footer re-enters the same way on every state swap. Rule: anything that
    changes position during a swap is invisible while it does. The first version faded the card

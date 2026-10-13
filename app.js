@@ -45,6 +45,7 @@ function add(name, input) {
   remove.setAttribute('aria-label', 'Remove ' + xmlName(name));
   remove.title = 'Remove';
   remove.onclick = () => dismiss(item);
+  card.querySelectorAll('.zoom').forEach(z => (z.onclick = () => openViewer(item, z.dataset.show)));
   card.querySelector('.copy').onclick = e => navigator.clipboard.writeText(item.xml).then(() => flash(e.target, 'Copied'));
   card.querySelector('.save').onclick = () => {
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([item.xml], { type: 'text/xml' })), download: xmlName(name) });
@@ -86,14 +87,43 @@ async function render(item) {
 function dismiss(item) {
   const i = items.indexOf(item);
   items.splice(i, 1);
-  const orig = item.card.querySelector('.orig').src;
-  if (orig) URL.revokeObjectURL(orig);
-  item.card.remove();
-  syncView();
-  // Keep keyboard focus on the page: the next card's X, or the file picker once nothing is left.
-  const next = $('#results .remove');
-  (next || $('#file')).focus();
+  const { card } = item;
+  const gone = () => {
+    const orig = card.querySelector('.orig').src;
+    if (orig) URL.revokeObjectURL(orig);
+    card.remove();
+    syncView();
+    // Keep keyboard focus on the page: the next card's X, or the file picker once nothing is left.
+    ($('#results .remove') || $('#file')).focus();
+  };
+  // Let the card fade out first. Reduced motion turns the animation off, and then no animationend fires.
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return gone();
+  card.classList.add('leaving');
+  card.addEventListener('animationend', gone, { once: true });
 }
+
+// Tapping a preview opens it large, with a switch to compare the original and the output.
+const viewer = $('#viewer');
+let viewing;
+function showInViewer(which) {
+  $('#viewer-img').src = viewing.card.querySelector('.' + which).src;
+  $('#viewer-img').alt = which === 'orig' ? 'Original' : 'VectorDrawable preview';
+  viewer.querySelectorAll('[data-show]').forEach(b => b.setAttribute('aria-pressed', b.dataset.show === which));
+}
+function openViewer(item, which) {
+  if (!item.card.querySelector('.' + which).src) return; // still converting
+  viewing = item;
+  $('#viewer-name').textContent = xmlName(item.name);
+  showInViewer(which);
+  viewer.showModal();
+}
+viewer.querySelectorAll('[data-show]').forEach(b => (b.onclick = () => showInViewer(b.dataset.show)));
+$('#viewer-close').onclick = () => viewer.close();
+viewer.onclick = e => { if (e.target === viewer) viewer.close(); }; // the dialog box itself is only hit outside .viewer-body
+viewer.onkeydown = e => {
+  if (e.key === 'ArrowLeft') showInViewer('orig');
+  if (e.key === 'ArrowRight') showInViewer('out');
+};
 
 // Empty: show the ways in. Loaded: hide them and show the options and the inputs.
 function syncView() {
@@ -158,6 +188,7 @@ function syncTheme() {
 }
 $('#theme').onclick = () => {
   root.dataset.theme = light() ? 'dark' : 'light';
+  $('#theme').classList.add('turned'); // only animate the icon swap after a click, not on page load
   try { localStorage.setItem('theme', root.dataset.theme); } catch {}
   syncTheme();
 };

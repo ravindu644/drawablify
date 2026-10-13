@@ -301,6 +301,20 @@ are left, so a keyboard user never lands on nothing.
 Original on the left, the generated VectorDrawable on the right, drawn from the output XML so it
 shows what Android will draw. Both sit on a checkerboard so transparency is visible.
 
+### Preview viewer
+
+Tapping or clicking either preview opens a native `<dialog>`: the image large on the
+checkerboard, an Original / VectorDrawable segmented switch, the file name, and a close X. The
+switch is how you compare input and output, so it opens on the side that was tapped. Left and
+Right arrow keys switch too; Escape, the X, or a click on the scrim closes it.
+
+The segmented switch is the M3 segmented button: outlined segments joined into one pill, the
+selected one on `secondary-container`. It is not `primary`, because the dialog has no primary
+action.
+
+The preview tiles are buttons with an `aria-label` ("View original larger"), a zoom-in cursor,
+and a border that steps to `on-surface-variant` on hover.
+
 ### Options
 
 Shown only in the loaded state. Changing decimal places re-renders every result. The tracing
@@ -313,13 +327,28 @@ and a dashed `primary` outline appears around the results in the loaded state.
 
 ## Motion
 
-Two kinds, nothing else moves.
+Every curve is a Droidspaces token: the M3 Expressive spatial-default spring (472ms, slight
+overshoot) for things that move, the effects springs (182ms and 269ms, no overshoot) for colour
+and opacity, and the `@material/web` press curve for buttons. All are CSS. There is no animation
+library.
+
+Objects move. Text never moves on its own.
 
 1. **Press.** Buttons morph from radius 24 to 12 on `:active` and spring back over
-   `350ms cubic-bezier(0.42, 1.67, 0.21, 0.9)`, the `@material/web` 2.5.0 expressive button curve.
-2. **Hover.** Surfaces and outlined buttons step a tier over the M3 effects-fast spring (182ms).
+   `350ms cubic-bezier(0.42, 1.67, 0.21, 0.9)`.
+2. **Hover.** Surfaces, outlined buttons and preview borders step over effects-fast (182ms).
+3. **Arrival.** A result card rises 16px and fades in over the spatial spring when it is added.
+   The paste box does the same when its disclosure opens. Each happens once.
+4. **Removal.** A removed card fades and shrinks to 96% over effects-default (269ms), then
+   leaves the layout.
+5. **State change.** The empty and loaded sections fade in over effects-default when they swap.
+6. **Theme change.** Background, text and border colours ease over effects-default. The toggle
+   icon turns in from -90 degrees, only after a click, never on page load.
+7. **Viewer.** The preview dialog scales in from 96% over the spatial spring, and its scrim
+   fades in.
 
-Under `prefers-reduced-motion: reduce` every transition is off and buttons do not morph.
+Under `prefers-reduced-motion: reduce` every transition and animation is off, buttons do not
+morph, and a removed card leaves at once.
 
 ## Do's and Don'ts
 
@@ -335,7 +364,7 @@ Don't claim what the tool does not do. If a feature has a limit, the page says s
 Don't add a gradient other than the preview checkerboard.
 Don't load a font, icon or script from anywhere but this origin.
 Don't append an arrow to a label.
-Don't animate text or add entrance animations.
+Don't animate text, and don't add motion that is not listed under Motion.
 
 ## Decided exceptions
 
@@ -353,5 +382,7 @@ Looked at and deliberately left alone.
   on browsers older than 2024, and this page is meant for old phones too.
 - **`theme.js` is a separate blocking script in `<head>`.** The CSP forbids inline scripts, and
   applying a saved theme any later flashes the other theme on load.
+- **The viewer has a scrim.** `rgb(0 0 0 / .5)` behind the dialog is the one translucent
+  thing on the page. A modal has to push the page back, and that is what the M3 scrim is for.
 - **Warnings are `tertiary`.** M3 has no warning role, and `error` is kept for a conversion that
   failed outright.

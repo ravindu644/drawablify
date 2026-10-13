@@ -20,6 +20,8 @@
   --surface-container: #141a1e; --surface-high: #1a2124; --surface-highest: #1f272b;
   --on-surface: #dee7ec; --on-surface-variant: #a4acb2; --outline-variant: #41494e;
   --motion-press: 350ms cubic-bezier(0.42, 1.67, 0.21, 0.9);
+  --motion-spatial: 472ms linear(0, 0.0598, 0.1942, 0.3545, 0.5113, 0.6493, 0.762, 0.8489, 0.9124, 0.9562, 0.9847, 1.0018, 1.0109, 1.0146, 1.015, 1.0136, 1.0114, 1.009, 1.0067, 1.0047, 1.0031, 1.0019, 1.0011, 1.0005, 1);
+  --motion-effects-default: 269ms linear(0, 0.075, 0.2263, 0.389, 0.5352, 0.6555, 0.7495, 0.8206, 0.873, 0.911, 0.9381, 0.9572, 0.9706, 0.9799, 0.9863, 0.9907, 0.9937, 0.9958, 0.9972, 0.9981, 0.9987, 0.9992, 0.9994, 0.9996, 1);
   --motion-effects: 182ms linear(0, 0.0805, 0.2403, 0.409, 0.5576, 0.6777, 0.7697, 0.838, 0.8874, 0.9225, 0.9471, 0.9641, 0.9758, 0.9838, 0.9892, 0.9928, 0.9952, 0.9968, 0.9979, 0.9986, 0.9991, 0.9994, 0.9996, 0.9997, 1);
   --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -47,6 +49,10 @@
   --on-surface: #2b3438; --on-surface-variant: #586065; --outline-variant: #abb3b9;
 }
 * { box-sizing: border-box; }
+/* Theme changes ease instead of snapping. Buttons and the drop zone carry their own transitions. */
+body, .card, textarea, select, input, dialog {
+  transition: background-color var(--motion-effects-default), border-color var(--motion-effects-default), color var(--motion-effects-default);
+}
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--surface); color: var(--on-surface); font: 400 16px/24px var(--sans); letter-spacing: .5px; }
 main { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
@@ -100,11 +106,44 @@ details textarea { margin: 8px 0 12px; }
 figure { margin: 0; }
 figcaption { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--on-surface-variant); margin-top: 8px; }
 /* The checkerboard is the one gradient: it shows where the drawing is transparent. */
-.previews img { display: block; width: 100%; height: 160px; object-fit: contain; border-radius: 16px; border: 1px solid var(--outline-variant);
+.zoom { display: block; width: 100%; height: auto; padding: 0; border: 0; border-radius: 16px; background: none; cursor: zoom-in; }
+.zoom:hover, .zoom:active { background: none; border-radius: 16px; }
+.zoom:hover img { border-color: var(--on-surface-variant); }
+.previews img, #viewer-img { display: block; width: 100%; height: 160px; object-fit: contain; border-radius: 16px; border: 1px solid var(--outline-variant); transition: border-color var(--motion-effects);
   background: var(--surface-high) repeating-conic-gradient(var(--surface-highest) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
 .warnings { color: var(--tertiary); font-size: 14px; line-height: 20px; margin: 0 0 12px; padding-left: 20px; }
 .warnings:empty { display: none; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+dialog { width: min(960px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--outline-variant);
+  border-radius: 28px; background: var(--surface-container); color: var(--on-surface); }
+/* The M3 scrim: the one translucent thing on the page, because a modal needs the page behind it pushed back. */
+dialog::backdrop { background: rgb(0 0 0 / .5); }
+dialog:focus { outline: none; }
+.viewer-body { padding: 16px 24px 24px; display: grid; gap: 12px; }
+#viewer-name { margin: 0; }
+.viewer-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-right: -12px; }
+#viewer-img { height: min(70dvh, 640px); }
+.seg { display: flex; }
+.seg button { padding: 0 16px; }
+.seg button + button { margin-left: -1px; }
+.seg button:first-child, .seg button:first-child:active { border-radius: 24px 0 0 24px; }
+.seg button:last-child, .seg button:last-child:active { border-radius: 0 24px 24px 0; }
+.seg [aria-pressed="true"] { background: var(--secondary-container); color: var(--on-secondary-container); }
+
+/* Motion: see DESIGN.md. Objects move, text never does on its own. */
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: scale(.96); } }
+@keyframes leave { to { opacity: 0; transform: scale(.96); } }
+@keyframes turn { from { opacity: 0; transform: rotate(-90deg) scale(.6); } }
+.card { animation: rise var(--motion-spatial) both; }
+.card.leaving { animation: leave var(--motion-effects-default) forwards; pointer-events: none; }
+#start:not([hidden]), #work:not([hidden]) { animation: fade var(--motion-effects-default); }
+details[open] > :not(summary) { animation: rise var(--motion-spatial); }
+dialog[open] { animation: pop var(--motion-spatial); }
+dialog[open]::backdrop { animation: fade var(--motion-effects-default); }
+#theme.turned svg { animation: turn var(--motion-spatial); }
 
 footer { margin-top: 48px; color: var(--on-surface-variant); font-size: 14px; line-height: 20px; }
 footer p { margin: 0 0 12px; }
@@ -117,7 +156,7 @@ code { font-family: var(--mono); }
   .previews { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; }
+  * { transition: none !important; animation: none !important; }
   button:active, .icon:active { border-radius: 24px; }
 }
 </style>
@@ -176,6 +215,22 @@ code { font-family: var(--mono); }
   </footer>
 </main>
 
+<dialog id="viewer" aria-labelledby="viewer-name">
+  <div class="viewer-body">
+    <div class="viewer-top">
+      <div class="seg" role="group" aria-label="Show">
+        <button type="button" data-show="orig">Original</button>
+        <button type="button" data-show="out">VectorDrawable</button>
+      </div>
+      <button id="viewer-close" class="icon" type="button" aria-label="Close preview" title="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <img id="viewer-img" alt="">
+    <p id="viewer-name" class="small"></p>
+  </div>
+</dialog>
+
 <template id="card">
   <article class="card">
     <header>
@@ -186,8 +241,8 @@ code { font-family: var(--mono); }
     </header>
     <div class="body">
       <div class="previews">
-        <figure><img class="orig" alt="Original"><figcaption>Original</figcaption></figure>
-        <figure><img class="out" alt="VectorDrawable preview"><figcaption>VectorDrawable</figcaption></figure>
+        <figure><button class="zoom" type="button" data-show="orig" aria-label="View original larger"><img class="orig" alt=""></button><figcaption>Original</figcaption></figure>
+        <figure><button class="zoom" type="button" data-show="out" aria-label="View VectorDrawable larger"><img class="out" alt=""></button><figcaption>VectorDrawable</figcaption></figure>
       </div>
       <ul class="warnings"></ul>
       <textarea rows="8" readonly aria-label="VectorDrawable XML"></textarea>
